@@ -15,7 +15,7 @@ class Employee(object):
     super(Employee, self).__init__()
     self.employeeId = employeeId
     self.salary = salary
-    self.skills = skills    
+    self.skills = skills
 
 # randomize the number of skills between 5 and 10 inclusively
 S = random.randint(7,10)
@@ -29,7 +29,7 @@ tasks = []
 for i in range(1, T+1):
   # sample a cost from a normal distribution with mu=10 and std=5
   cost = round(np.random.normal(10,5))
-  
+
   skills = []
 
   # randomize number of skills required for this task
@@ -37,8 +37,14 @@ for i in range(1, T+1):
 
   # randomize skills for this task
   for i in range(numSkills):
-    skills.append(random.randint(1,S))
+    r = random.randint(1, S)
+    # remove duplication
+    while (r in skills):
+      r = random.randint(1, S)
+    skills.append(r)
 
+  # maintain the skill list as sorted
+  skills.sort()
   # add task instance to task list
   tasks.append(Task(i, cost, skills))
 
@@ -69,7 +75,22 @@ for i in range(1,E+1):
   skills = []
 
   numSkills = random.randint(6,7)
-  for i in range(numSkills):
-    skills.append(random.randint(1,S))
+  # because of the malicious usage of i, append operation inserted the wrong i for the Employee object. Changed from i to j.
+  for j in range(numSkills):
+    r = random.randint(1,S)
+    # remove duplication
+    while (r in skills):
+      r = random.randint(1,S)
+    skills.append(r)
 
+  # maintain the skill list as sorted
+  skills.sort()
   employees.append(Employee(i, salary, skills))
+
+if __name__ == "__main__":
+    for t in tasks:
+        print(t.taskId, t.cost, t.skills)
+    for ed in TPG:
+        print(ed)
+    for e in employees:
+        print(e.employeeId, e.salary, e.skills)
