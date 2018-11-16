@@ -36,7 +36,7 @@ for i in range(1, T+1):
   numSkills = random.randint(2,3)
 
   # randomize skills for this task
-  for i in range(numSkills):
+  for j in range(numSkills):
     r = random.randint(1, S)
     # remove duplication
     while (r in skills):
