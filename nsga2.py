@@ -7,6 +7,26 @@ from typing import TypeVar, Generic, List
 import numpy as np
 from plotly.validators.surface.contours.x import project
 
+''' Important parts on MOCell:
+    S: Number of Skills
+    T: Number of Tasks
+    E: Number of Employees
+    Solution class object: Make a 2-dimensional employee allocation matrix and save each employee's working hour for each task. It's form is 1-dimensional array with size T * E. It also saves the size T * E and the location (the index of the individual).
+    SBX crossover: Implemented that operator
+    Mutation: change 1 variable among T*E elements in the employee allocation matrix for 2 offspring genes
+    Selecting parent: pick 2 among the 8 neighbors of the current population. Neighbor doesn't occur after that in the remaining evaluation cycle.
+    crossover: define SBX operator and apply execute function to the parents and put them into the offspring
+    Solve TPG: ...
+    Replacement on the current population: replacing the individual's parameter (employee allocation matrix) by offspring[0]'s one after comparing fitness of the original one and the offspring[0] (and add that offspring[0] to archive) (Note that picking individual from current population is done by shallow copy (referencing), not by deep copy (which should be copied by copy.deepcopy(nameOfObject)).
+'''
+''' Changes to adapt to NSGA-II:
+    - do non-dominated sort on initial population based on the fitness. (Note that pareto-front on single-objective task is just a sorting)
+    - Assign crowding distance : non needed for single object task, but if it becomes MO, do that
+    - Selection for crossover/mutation: use crowded comparison operator for binary tournament selection - select currentPopulation times. (Find other implementations)
+    - crossover: do on the offspring by SBX
+    - mutation:
+    - recombination: pick the best currentPopulation genes (it performs non-dominated sort and crowding distance computation), and go to the selection process.
+
 #####################instance_generator.py###############################3
 class Task(object):
   """docstring for Task"""
@@ -94,13 +114,14 @@ for i in range(1,E+1):
   skills.sort()
   employees.append(Employee(i, salary, skills))
 
-if __name__ == "__main__":
+'''if __name__ == "__main__":
     for t in tasks:
         print(t.taskId, t.cost, t.skills)
     for ed in TPG:
         print(ed)
     for e in employees:
         print(e.employeeId, e.salary, e.skills)
+'''
 #####################instance_generator.py###############################3
 
 
@@ -110,7 +131,7 @@ def neighborhood(size):
     #for i in range(0,size):
     #    for j in range(0, 2):
     #            structure[i][j]=[]
-                
+
     rowsize = int(math.sqrt(size))
 
     for i in range(0, size):
@@ -118,26 +139,26 @@ def neighborhood(size):
             structure[i][0] = i=rowsize
         else:
             structure[i][0] = (i-rowsize+size)%size
-    
+
         if (i+1)%rowsize==0:
             structure[i][2] = i-rowsize+1
         else:
             structure[i][2] = i+1;
-            
+
         if i % rowsize ==0:
             structure[i][3] = i+rowsize-1
         else:
             structure[i][3] = i-1;
-            
+
         structure[i][1] = (i+rowsize)%size;
-        
-        
+
+
     for i in range(0, size):
         structure[i][6] = structure[structure[i][0]][2]
         structure[i][4] = structure[structure[i][0]][3]
         structure[i][7] = structure[structure[i][1]][2]
         structure[i][5] = structure[structure[i][1]][3]
-    
+
     return structure
 
 def getEightNeighbors(struc, list, num):
@@ -173,7 +194,7 @@ class Solution(Generic[S]):
         self.location = location
         self.lower_bound=[0.0 for _ in range(self.number_of_variables)]
         self.upper_bound =[1.0 for _ in range(self.number_of_variables)]
-        
+
         self.objectives = [0.0 for _ in range(self.number_of_objectives)]
         self.variables = variables
         self.attributes = {}
@@ -187,7 +208,7 @@ class Solution(Generic[S]):
         new_solution.variables = self.variables[:]
 
         return new_solution
-    
+
 class Crossover(Operator[List[S], List[R]]):
     """ Class representing crossover operator. """
 
@@ -279,7 +300,7 @@ class SBX(Crossover[Solution, Solution]):
 
 
 
-   
+
 
 
 def mutation(Solution1, Solution2):
@@ -297,7 +318,7 @@ populationSize=50
 archiveSize=15
 maxEvaluations=1000
 feedback=20
-currentpopulation = [] 
+currentpopulation = []
 neighborhood = neighborhood(populationSize)
 neighbors = [Solution(variables=[], number_of_variables=T*E, location=0) for i in range(populationSize)]
 solution = []
@@ -317,32 +338,32 @@ for i in range(0, populationSize):
         temp = temp+temp2
     individual = Solution(variables=temp, number_of_variables=T*E, location=i)
     currentPopulation.append(individual)
-  
-#iteration    
+
+#iteration
 while (evaluations < maxEvaluations):
     for popul in range(0, len(currentPopulation)):
         individual = currentPopulation[popul]
         parents =  [Solution(variables=[], number_of_variables=T*E, location=0) for ii in range(2)]
         offspring = [Solution(variables=[], number_of_variables=T*E, location=0) for ii in range(2)]
-        
+
         neighbors[popul] = getEightNeighbors(neighborhood, currentPopulation, popul)
-       
+
         ind = random.randint(0, len(neighbors[popul])-1)
         parents[0] = neighbors[popul][ind]
-    
+
         if len(archive)>0:
             ind = random.randint(0, len(archive)-1)
             parents[1] = archive[ind]
         else:
             ind = random.randint(0, len(neighbors[popul])-1)
-            parents[1] = neighbors[popul][ind]        
+            parents[1] = neighbors[popul][ind]
 
         crossover = SBX(probability=0.9, distribution_index=20)
         offspring = crossover.execute(parents)
 
         offspring = mutation(offspring[0], offspring[1])
         evaluations = evaluations+1
-        
+
         fitness=[]
         for test in range(2):
             object = individual
@@ -353,27 +374,27 @@ while (evaluations < maxEvaluations):
                 k=0
                 for j in range(E):
                     k=k+object.variables[i*E+j]
-    
+
                 if k==0:
                     undt=undt+1
-                    
+
             reqsk=0
             for i in tasks:
                 s = set([])
                 for j in employees:
                     if object.variables[(i.taskId-1)*E+j.employeeId-1]>0:
                         s = s.union(set(j.skills))
-    
+
                 s = set(i.skills)-s
-    
+
                 reqsk = reqsk+len(s)
-            
-                
-            
+
+
+
             solvable= 1
             projectduration=0
             unfinished =copy.deepcopy(tasks)
-    
+
             TPG2 = copy.deepcopy(TPG)
             totaloverwork=0
             while (TPG)!=0:
@@ -382,17 +403,17 @@ while (evaluations < maxEvaluations):
                 for tpg in TPG:
                     if tpg[1] not in depended:
                         depended.append(tpg[1])
-    
+
                 for f in unfinished:
                     if f.taskId not in depended:
                         V.append(f)
                 overwork=0
-    
+
                 if (len(V)==0):
                     solvable=0
                     break
                 dedication=[]
-    
+
                 ratio=[]
                 dedicationj=[]
                 i=0
@@ -406,8 +427,8 @@ while (evaluations < maxEvaluations):
                         solvable=0
                         break
                     dedicationj.append(d)
-    
-           
+
+
                     ratio.append(v.cost/d)
                     i=i+1
                 dedsum=0
@@ -429,20 +450,20 @@ while (evaluations < maxEvaluations):
                             un.cost = un.cost - t*dedicationj[i]
                             if un.cost<=0.001:
                                 deleted.append(j.taskId)
-                    
+
                     i=i+1
                 totaloverwork = totaloverwork +overwork*t
-    
-    
+
+
                 for j in unfinished:
                     if j.taskId in deleted:
                         del unfinished[unfinished.index(j)]
                 for tpg in TPG:
                     if (tpg[0] in deleted) or (tpg[1] in deleted):
                         del TPG[TPG.index(tpg)]
-                    
-               
-            projectcost=0 
+
+
+            projectcost=0
             tkj=[]
             Pei=[]
             for task in tasks:
@@ -455,17 +476,17 @@ while (evaluations < maxEvaluations):
             for employee in employees:
                 for task in tasks:
                     projectcost = projectcost+object.variables[(task.taskId-1)*E+employee.employeeId-1]*tkj[task.taskId-1]*Pei[employee.employeeId-1]
-                
-            
+
+
             if totaloverwork>0:
                 fitness.append( 1/(projectcost*0.000001+projectduration*0.1+100+10*undt+10*reqsk+0.1*totaloverwork))
         if fitness[0]<fitness[1]:
             print("fitness", fitness[1])
             individual.variables = offspring[0].variables
             individual.location = offspring[0].location
-            archive.append(individual)   
+            archive.append(individual)
 
 for i in range(archiveSize):
     print(archive[len(archive)-1-i].variables)
-        
-            
+
+
