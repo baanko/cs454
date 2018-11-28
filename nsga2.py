@@ -7,7 +7,7 @@ from typing import TypeVar, Generic, List
 import numpy as np
 from plotly.validators.surface.contours.x import project
 
-''' Important parts on MOCell:
+""" Important parts on MOCell:
     S: Number of Skills
     T: Number of Tasks
     E: Number of Employees
@@ -18,14 +18,15 @@ from plotly.validators.surface.contours.x import project
     crossover: define SBX operator and apply execute function to the parents and put them into the offspring
     Solve TPG: ...
     Replacement on the current population: replacing the individual's parameter (employee allocation matrix) by offspring[0]'s one after comparing fitness of the original one and the offspring[0] (and add that offspring[0] to archive) (Note that picking individual from current population is done by shallow copy (referencing), not by deep copy (which should be copied by copy.deepcopy(nameOfObject)).
-'''
-''' Changes to adapt to NSGA-II:
+
+     Changes to adapt to NSGA-II:
     - do non-dominated sort on initial population based on the fitness. (Note that pareto-front on single-objective task is just a sorting)
     - Assign crowding distance : non needed for single object task, but if it becomes MO, do that
     - Selection for crossover/mutation: use crowded comparison operator for binary tournament selection - select currentPopulation times. (Find other implementations)
     - crossover: do on the offspring by SBX
     - mutation:
     - recombination: pick the best currentPopulation genes (it performs non-dominated sort and crowding distance computation), and go to the selection process.
+    """
 
 #####################instance_generator.py###############################3
 class Task(object):
