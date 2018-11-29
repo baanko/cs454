@@ -1,5 +1,6 @@
 import math
 import random
+import sys
 import copy
 import matplotlib.pyplot as plt
 from abc import ABCMeta, abstractmethod
@@ -30,19 +31,22 @@ from plotly.validators.surface.contours.x import project
 
 #####################instance_generator.py###############################3
 class Task(object):
-  """docstring for Task"""
+    """docstring for Task"""
   def __init__(self, taskId, cost, skills):
-    super(Task, self).__init__()
+      super(Task, self).__init__()
     self.taskId = taskId
     self.cost = cost
     self.skills = skills
 class Employee(object):
-  """docstring for Employee"""
+    """docstring for Employee"""
   def __init__(self, employeeId, salary, skills):
-    super(Employee, self).__init__()
+      super(Employee, self).__init__()
     self.employeeId = employeeId
     self.salary = salary
     self.skills = skills
+
+# set the number of objectives (fitnesses)
+num_objectives = 1
 
 # randomize the number of skills between 5 and 10 inclusively
 S = random.randint(7,10)
@@ -125,50 +129,6 @@ for i in range(1,E+1):
 '''
 #####################instance_generator.py###############################3
 
-
-
-def neighborhood(size):
-    structure = [[0]*8 for i in range(size)]
-    #for i in range(0,size):
-    #    for j in range(0, 2):
-    #            structure[i][j]=[]
-
-    rowsize = int(math.sqrt(size))
-
-    for i in range(0, size):
-        if (i >rowsize-1):
-            structure[i][0] = i=rowsize
-        else:
-            structure[i][0] = (i-rowsize+size)%size
-
-        if (i+1)%rowsize==0:
-            structure[i][2] = i-rowsize+1
-        else:
-            structure[i][2] = i+1;
-
-        if i % rowsize ==0:
-            structure[i][3] = i+rowsize-1
-        else:
-            structure[i][3] = i-1;
-
-        structure[i][1] = (i+rowsize)%size;
-
-
-    for i in range(0, size):
-        structure[i][6] = structure[structure[i][0]][2]
-        structure[i][4] = structure[structure[i][0]][3]
-        structure[i][7] = structure[structure[i][1]][2]
-        structure[i][5] = structure[structure[i][1]][3]
-
-    return structure
-
-def getEightNeighbors(struc, list, num):
-    neighbors = []
-    for i in range(8):
-        index = struc[num][i]
-        neighbors.append(list[index])
-    return neighbors;
-
 S = TypeVar('S')
 R = TypeVar('R')
 class Operator(Generic[S, R]):
@@ -189,26 +149,106 @@ class Solution(Generic[S]):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, number_of_variables: int, location:int, variables: List[float]):
-        self.number_of_objectives = 1;
+    def __init__(self, number_of_objectives: int, number_of_variables: int, variables: List[float]):
+        '''
+        Constructor. Parameters:
+        number_of_variables
+        variables: time (in hour) that each employee has been allocated for that hour for such task
+        Other elements:
+        rank: rank for NSGA-II
+        distance: distance for crowding-distance
+        '''
+        self.number_of_objectives = number_of_objectives
         self.number_of_variables = number_of_variables
-        self.location = location
         self.lower_bound=[0.0 for _ in range(self.number_of_variables)]
         self.upper_bound =[1.0 for _ in range(self.number_of_variables)]
 
         self.objectives = [0.0 for _ in range(self.number_of_objectives)]
         self.variables = variables
         self.attributes = {}
+        self.rank = sys.maxsize
+        self.distance = 0.0
 
     def __copy__(self):
+        '''
+        Copying operator
+        '''
         new_solution = Solution(
-            self.number_of_variables,
-            self.number_of_objectives,
-            self.location)
+                self.number_of_variables,
+                self.number_of_objectives)
         new_solution.objectives = self.objectives[:]
         new_solution.variables = self.variables[:]
+        new_solution.rank = self.rank
+        new_solution.distance = self.distance
 
         return new_solution
+
+    def __rshift__(self, other):
+        '''
+        True if this solution dominates the other (">>" operator)
+        '''
+        dominates = False
+        for i in range(len(self.objectives)):
+            if self.objectives[i] > other.objectives[i]:
+                return False
+
+            elif self.objectives[i] < other.objectives[i]:
+                dominates = True
+
+        return dominates
+
+    def __lshift__(self, other):
+        '''
+        True if the other solution dominates this solution ("<<" operator)
+        '''
+        return other >> self
+
+class NSGA2:
+    '''
+    Implement parts of NSGA-II
+    '''
+
+    current_evaluated_objective = 0
+
+    def __init__(self, num_objectives, num_variables, crossover_rate = 0.9):
+        '''
+        Constructor. Parameters: number of objectives, number of variables (size of the employee allocation matrix, crossover_rate (default 90%)
+        '''
+        self.num_objectives = num_objectives
+        self.num_variables = num_variables
+        self.crossover_rate = crossover_rate
+
+        random.seed()
+
+    def run(self, P, population_size, num_generations):
+        '''
+        Run the NSGA-II instance
+        '''
+        raise NotImplementedError("NSGA2 class have to be implemented.")
+
+    def sort_objective(self, P, obj_idx):
+        P.sort(key=lambda x: x.objectives[obj_idx])
+
+    def sort_crowdingdist(self, P):
+        P.sort(key=lambda x:x.distance, reverse=True)
+        P.sort(key=lambda x:x.rank)
+
+    def make_offspring(self, P):
+        '''
+        Make offspring by crossover and mutation
+        '''
+        raise NotImplementedError("NSGA2 class have to be implemented.")
+
+    def fast_nondominated_sort(self, P):
+        '''
+        Discover pareto fronts in P based on non-domination criterion.
+        '''
+
+    def assign_crowding_distance(self, front):
+        '''
+        Assign a crowding distance for each solution in each front.
+        '''
+        raise NotImplementedError("NSGA2 class have to be implemented.")
 
 class Crossover(Operator[List[S], List[R]]):
     """ Class representing crossover operator. """
@@ -314,38 +354,36 @@ def mutation(Solution1, Solution2):
     return [Solution1, Solution2]
 
 
-
+#initialize currentpopulation
+crossover_rate=0.9
 populationSize=50
 archiveSize=15
 maxEvaluations=1000
 feedback=20
 currentpopulation = []
-neighborhood = neighborhood(populationSize)
-neighbors = [Solution(variables=[], number_of_variables=T*E, location=0) for i in range(populationSize)]
 solution = []
 currentPopulation = []
 evaluations = 0
 archive = []
 
-#initialize currentpopulation
 for i in range(0, populationSize):
     temp=[]
     for i in range(T):
         temp2=[]
         for j in range(E):
             ded = random.randint(0,10)
-            ded= ded/10
+            ded = ded/10
             temp2.append(ded)
         temp = temp+temp2
-    individual = Solution(variables=temp, number_of_variables=T*E, location=i)
+    individual = Solution(variables=temp, number_of_variables=T*E, number_of_objectives=num_objectives)
     currentPopulation.append(individual)
 
 #iteration
 while (evaluations < maxEvaluations):
     for popul in range(0, len(currentPopulation)):
         individual = currentPopulation[popul]
-        parents =  [Solution(variables=[], number_of_variables=T*E, location=0) for ii in range(2)]
-        offspring = [Solution(variables=[], number_of_variables=T*E, location=0) for ii in range(2)]
+        parents = [Solution(variables=[], number_of_variables=T*E, number_of_objectives=num_objectives) for ii in range(2)]
+        offspring = [Solution(variables=[], number_of_variables=T*E, number_of_objectives=num_objectives) for ii in range(2)]
 
         neighbors[popul] = getEightNeighbors(neighborhood, currentPopulation, popul)
 
@@ -359,7 +397,7 @@ while (evaluations < maxEvaluations):
             ind = random.randint(0, len(neighbors[popul])-1)
             parents[1] = neighbors[popul][ind]
 
-        crossover = SBX(probability=0.9, distribution_index=20)
+        crossover = SBX(probability=crossover_rate, distribution_index=20)
         offspring = crossover.execute(parents)
 
         offspring = mutation(offspring[0], offspring[1])
