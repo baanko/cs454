@@ -183,6 +183,145 @@ class Solution(Generic[S]):
 
         return new_solution
 
+    def evaluate(self):
+        # TODO: adapt fitness evaluation for NSGA-II
+
+        fitness=[]
+        for test in range(2):
+            object = individual
+            if test==1:
+                object = offspring[0]
+            undt =0
+            for i in range(T):
+                k=0
+                for j in range(E):
+                    k=k+object.variables[i*E+j]
+
+                if k==0:
+                    undt=undt+1
+
+            reqsk=0
+            for i in tasks:
+                s = set([])
+                for j in employees:
+                    if object.variables[(i.taskId-1)*E+j.employeeId-1]>0:
+                        s = s.union(set(j.skills))
+
+                s = set(i.skills)-s
+
+                reqsk = reqsk+len(s)
+
+
+
+            solvable= 1
+            projectduration=0
+            unfinished =copy.deepcopy(tasks)
+
+            TPG2 = copy.deepcopy(TPG)
+            totaloverwork=0
+            while (TPG)!=0:
+                V=[]
+                depended = []
+                for tpg in TPG:
+                    if tpg[1] not in depended:
+                        depended.append(tpg[1])
+
+                for f in unfinished:
+                    if f.taskId not in depended:
+                        V.append(f)
+                overwork=0
+
+                if (len(V)==0):
+                    solvable=0
+                    break
+                dedication=[]
+
+                ratio=[]
+                dedicationj=[]
+                i=0
+                for v in V:
+                    d=0
+                    for e in employees:
+                        ded = object.variables[(v.taskId-1)*E+e.employeeId-1]
+                        dedication.append(ded)
+                        d = d+ded
+                    if d==0:
+                        solvable=0
+                        break
+                    dedicationj.append(d)
+
+
+                    ratio.append(v.cost/d)
+                    i=i+1
+                dedsum=0
+                for e in employees:
+                    for p in range(i):
+                        dedsum=dedsum+dedication[p*E+e.employeeId-1]
+                    if dedsum>1:
+                        overwork=overwork+dedsum-1
+
+                t = min(ratio)
+                projectduration = projectduration+t
+                i=0
+                deleted=[]
+                if solvable==0:
+                    break
+                for j in V:
+                    for un in unfinished:
+                        if un.taskId == j.taskId:
+                            un.cost = un.cost - t*dedicationj[i]
+                            if un.cost<=0.001:
+                                deleted.append(j.taskId)
+
+                    i=i+1
+                totaloverwork = totaloverwork +overwork*t
+
+
+                for j in unfinished:
+                    if j.taskId in deleted:
+                        del unfinished[unfinished.index(j)]
+                for tpg in TPG:
+                    if (tpg[0] in deleted) or (tpg[1] in deleted):
+                        del TPG[TPG.index(tpg)]
+
+
+            projectcost=0
+            tkj=[]
+            Pei=[]
+            for task in tasks:
+                sum=0
+                for employee in employees:
+                    sum=sum+object.variables[(task.taskId-1)*E+employee.employeeId-1]
+                tkj.append(task.cost/sum)
+            for employee in employees:
+                Pei.append(employee.salary)
+            for employee in employees:
+                for task in tasks:
+                    projectcost = projectcost+object.variables[(task.taskId-1)*E+employee.employeeId-1]*tkj[task.taskId-1]*Pei[employee.employeeId-1]
+
+
+            if totaloverwork>0:
+                fitness.append( 1/(projectcost*0.000001+projectduration*0.1+100+10*undt+10*reqsk+0.1*totaloverwork))
+        if fitness[0]<fitness[1]:
+            print("fitness", fitness[1])
+            individual.variables = offspring[0].variables
+            individual.location = offspring[0].location
+            archive.append(individual)
+        # evaluate solution and update objective values.
+        raise NotImplementedError("Solution class have to be implemented")
+
+    '''
+    def crossover(self, other):
+        # crossover using such operator
+        raise NotImplementedError("Solution class have to be implemented")
+        '''
+
+    '''
+    def mutate(self):
+        # mutate with such mutation operator
+        raise NotImplementedError("Solution class have to be implemented")
+    '''
+
     def __rshift__(self, other):
         '''
         True if this solution dominates the other (">>" operator)
@@ -203,52 +342,19 @@ class Solution(Generic[S]):
         '''
         return other >> self
 
-class NSGA2:
-    '''
-    Implement parts of NSGA-II
-    '''
-
-    current_evaluated_objective = 0
-
-    def __init__(self, num_objectives, num_variables, crossover_rate = 0.9):
-        '''
-        Constructor. Parameters: number of objectives, number of variables (size of the employee allocation matrix, crossover_rate (default 90%)
-        '''
-        self.num_objectives = num_objectives
-        self.num_variables = num_variables
-        self.crossover_rate = crossover_rate
-
-        random.seed()
-
-    def run(self, P, population_size, num_generations):
-        '''
-        Run the NSGA-II instance
-        '''
-        raise NotImplementedError("NSGA2 class have to be implemented.")
-
-    def sort_objective(self, P, obj_idx):
-        P.sort(key=lambda x: x.objectives[obj_idx])
-
-    def sort_crowdingdist(self, P):
-        P.sort(key=lambda x:x.distance, reverse=True)
-        P.sort(key=lambda x:x.rank)
-
-    def make_offspring(self, P):
-        '''
-        Make offspring by crossover and mutation
-        '''
-        raise NotImplementedError("NSGA2 class have to be implemented.")
-
-    def fast_nondominated_sort(self, P):
-        '''
-        Discover pareto fronts in P based on non-domination criterion.
-        '''
-
-    def assign_crowding_distance(self, front):
-        '''
-        Assign a crowding distance for each solution in each front.
-        '''
-        raise NotImplementedError("NSGA2 class have to be implemented.")
+def crowded_comparison(s1, s2):
+    # compare s1 and s2 based on crowded comparison
+    # if s1 has a priority, return -1. else if s2 has a priority, return 1. else, return 0
+    if s1.rank < s2.rank:
+        return 1
+    elif s1.rank > s2.rank:
+        return -1
+    elif s1.distance > s2.distance:
+        return 1
+    elif s1.distance < s2.distance:
+        return -1
+    else:
+        return 0
 
 class Crossover(Operator[List[S], List[R]]):
     """ Class representing crossover operator. """
@@ -262,8 +368,6 @@ class Crossover(Operator[List[S], List[R]]):
             raise Exception('The probability is lower than zero: {}'.format(probability))
 
         self.probability = probability
-
-
 
     @abstractmethod
     def execute(self, source: S) -> R:
@@ -338,12 +442,6 @@ class SBX(Crossover[Solution, Solution]):
                     offspring[1].variables[i] = value_x2
         return offspring
 
-
-
-
-
-
-
 def mutation(Solution1, Solution2):
     i=random.randint(0, T*E-1)
     j =random.randint(0,10)/10
@@ -352,6 +450,164 @@ def mutation(Solution1, Solution2):
     j =random.randint(0,10)/10
     Solution2.variables[i] = j
     return [Solution1, Solution2]
+
+class NSGA2:
+    '''
+    Implement parts of NSGA-II
+    '''
+
+    current_evaluated_objective = 0
+
+    def __init__(self, num_objectives, num_variables, crossover_rate = 0.9):
+        '''
+        Constructor. Parameters: number of objectives, number of variables (size of the employee allocation matrix, crossover_rate (default 90%)
+        '''
+        self.num_objectives = num_objectives
+        self.num_variables = num_variables
+        self.crossover_rate = crossover_rate
+
+        random.seed()
+
+    def run(self, P, population_size, num_generations):
+        # Run the NSGA-II instance
+
+        for s in P:
+            s.evaluate()
+
+        Q = []
+
+        for i in range(num_generations):
+            # print("Iteration ", i)
+
+            # combine parent and offspring
+            R = []
+            R.extend(P)
+            R.extend(Q)
+
+            fronts = self.fast_nondominated_sort(R) # front construction
+
+            del P[:] # make parent P empty
+
+            front = []
+            for front in fronts.values(): # fill parent until it reaches the size
+                if len(front) == 0: # Assert the non-emptyness of the front
+                    break
+
+                elif len(front) + len(P) > population_size:
+                    break
+
+                self.assign_crowding_dist(front) # assign crowding distance
+                P.extend(front)
+
+                '''
+                if len(P) >= population_size: # parent reaches the size
+                    break
+                '''
+            self.sort_crowdingdist(front) # sort by crowding_distance
+            P.append(front[:(population_size-len(P))]) # add first (population_size - len(P)) elements from the last front
+
+            Q = self.make_offspring(P)
+
+    def sort_objective(self, P, obj_idx):
+        # sort the popoulation (or the front) by obj_idx'th objective
+        P.sort(key=lambda x: x.objectives[obj_idx])
+
+    def sort_crowdingdist(self, P):
+        # sort the population (or the front) by decreasing order of crowding distance. note that rank order should be preserved.
+        P.sort(key=lambda x:x.distance, reverse=True)
+        P.sort(key=lambda x:x.rank)
+
+    def make_offspring(self, P):
+        # make offspring by crossover and mutation
+        # selection of parents will be done by random
+        Q = []
+        crossover = SBX(probability=crossover_rate, distribution_index=20) # initiate crossover instance
+
+        while len(Q) < len(P):
+            parents = [None, None]
+
+            while parents[0] == parents[1]:
+                # Additionally on the random choice, select two and pick one by the order of crowded comparison operaor
+                for i in range(2):
+                    s1 = random.choice(P)
+                    s2 = s1
+                    while s1 is s2:
+                        s2 = random.choice(P)
+
+                    if crowded_comparison(s1, s2) > 0:
+                        selected_solutions[i] = s1
+                    else:
+                        selected_solutions[i] = s2
+
+            if random.random() < self.crossover_rate:
+
+                child = crossover.execute(parents)
+
+                child = mutation(child[0], child[1])
+
+                child[0].evaluate()
+                Q.append(child)
+                if len(Q) < len(P):
+                    child[1].evaluate()
+                    Q.append(child[1])
+
+        return Q
+
+    def fast_nondominated_sort(self, P):
+        # discover pareto fronts in P based on non-domination criterion
+        fronts = {}
+
+        S = {} # Set of dominated instance of each instance p
+        n = {} # number of dominating instance of each instance p
+        for s in P: # use each instance of P as an index
+            S[s] = []
+            n[s] = 0
+
+        fronts[1] = [] # pareto fronts will be constructed from rank 1
+
+        for p in P: # with each instance p,
+            for q in P: # compare each instance q for p
+                if p is q: # p and q are instances of P, so is works as reference check
+                    continue
+
+                if p >> q: # p dominates q
+                    S[p].append[q]
+
+                elif p << q: # q dominates p
+                    n[p] += 1
+
+            if n[p] == 0:
+                p.rank = 1 # rank of this instance is 1
+                fronts[1].append(p) # insert this instance to rank 1 front
+
+        i = 1
+        while len(fronts[i]) != 0: # see each dominated instance of each front
+            next_front = []
+            for p in fronts[i]:
+                for q in S[p]: # find a dominates set q by p
+                    n[q] -= 1 # domination is recovered
+                    if n[q] == 0: # no other dominates q anymore
+                        q.rank = i + 1
+                        next_front.append(q)
+            i += 1
+            fronts[i] = next_front # fill the next front
+
+        return fronts # return the front
+
+    def assign_crowding_distance(self, front):
+        '''
+        assign a crowding distance for each solution in each front.
+        note that front is called as a reference, so changing the value here affects the entire population
+        '''
+        for p in front:
+            p.distance = 0 # distance initialize
+
+        for obj_index in range(self.number_of_objectives):
+            self.sort_objective(front, obj_index) # sort by each objective
+
+            front[0].distance = front[len(front) - 1].distance = float('inf') # boundary points are always selected
+            for i in range(1, len(front) - 1):
+                front[i].distance += (front[i+1].distance - front[i-1].distance) # Originally added value should be devided by the difference between the maximum possible fitness value and the minimum possible fitness value, but since we will regulate fitness as smaller than 1, just ignore.
 
 
 #initialize currentpopulation
