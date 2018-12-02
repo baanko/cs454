@@ -156,7 +156,7 @@ class Solution(Generic[S]):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, number_of_objectives: int, number_of_variables: int, variables: List[float]):
+    def __init__(self, number_of_objectives: int, number_of_variables: int, variables: List[float], identifier):
         '''
         Constructor. Parameters:
         number_of_variables
@@ -175,6 +175,7 @@ class Solution(Generic[S]):
         self.attributes = {}
         self.rank = sys.maxsize
         self.distance = 0.0
+        self.identifier=identifier
 
     def __copy__(self):
         '''
@@ -182,7 +183,7 @@ class Solution(Generic[S]):
         '''
         new_solution = Solution(
                 self.number_of_objectives,
-                self.number_of_variables, self.variables)
+                self.number_of_variables, self.variables, self.identifier)
         new_solution.objectives = self.objectives[:]
         new_solution.rank = self.rank
         new_solution.distance = self.distance
@@ -313,9 +314,7 @@ class Solution(Generic[S]):
         else:
             fitness.append(1/q)
 
-        self.variables = object.variables
         self.objectives[0] = fitness[0]
-        # print("fitness", fitness[0])
         # evaluate solution and update objective values.
 
     '''
@@ -336,10 +335,10 @@ class Solution(Generic[S]):
         '''
         dominates = False
         for i in range(len(self.objectives)):
-            if self.objectives[i] > other.objectives[i]:
+            if self.objectives[i] < other.objectives[i]:
                 return False
 
-            elif self.objectives[i] < other.objectives[i]:
+            elif self.objectives[i] > other.objectives[i]:
                 dominates = True
 
         return dominates
@@ -350,7 +349,7 @@ class Solution(Generic[S]):
         '''
         return other >> self
 
-class Crossover(Operator[S, R]):
+class Crossover(Operator[List[S], List[R]]):
     """ Class representing crossover operator. """
 
     __metaclass__ = ABCMeta
@@ -437,20 +436,32 @@ class SBX(Crossover[Solution, Solution]):
         return offspring
 
 def mutation(Solution1, Solution2):
-    i=random.randint(0, T*E-1)
-    j =random.randint(0,10)/10
-    Solution1.variables[i] = j
-    i=random.randint(0, T*E-1)
-    j =random.randint(0,10)/10
-    Solution2.variables[i] = j
+    r = random.random()
+    if(r < 0.5):
+        r = 1 - pow((2 * (1-r)), (1/8))
+    else:
+        r = pow(2*r, (1/8)) - 1
+    for i in range(T*E):
+        '''
+        i = random.randint(0, T*E-1)/10
+        j = random.randint(0,10)/10
+        Solution1.variables[i] = j
+        i = random.randint(0, T*E-1)/10
+        j = random.randint(0,10)/10
+        Solution2.variables[i] = j
+        '''
+        if random.random() < r:
+            j = random.randint(0,10)/10
+            Solution1.variables[i] = j
+        if random.random() < r:
+            j = random.randint(0,10)/10
+            Solution2.variables[i] = j
     return [Solution1, Solution2]
 
 class NSGA2:
     '''
     Implement parts of NSGA-II
     '''
-
-    current_evaluated_objective = 0
 
     def __init__(self, num_objectives, num_variables, crossover_rate = 0.9):
         '''
@@ -484,6 +495,8 @@ class NSGA2:
 
             front = []
             for front in fronts.values(): # fill parent until it reaches the size
+                ''' for p in front:
+                    print(p.variables) '''
                 if len(front) == 0: # Assert the non-emptyness of the front
                     break
 
@@ -497,8 +510,11 @@ class NSGA2:
 
             if len(P) > population_size:
                 del P[population_size:]
-            print("Generation ", i, ": ")
-            print(P[0].objectives[0])
+            ''' for p in P:
+                print(p.identifier, p.objectives[0]) '''
+            print("Generation", i, ": ", P[0].identifier, P[0].objectives[0])
+            # print(P[0].variables)
+            # print("Generation", i, ": ", P[len(P)-1].identifier, P[len(P)-1].objectives[0])
 
             Q = self.make_offspring(P)
 
@@ -515,7 +531,7 @@ class NSGA2:
         # make offspring by crossover and mutation
         # selection of parents will be done by random
         Q = []
-        crossover = SBX(probability=crossover_rate, distribution_index=20) # initiate crossover instance
+        crossover = SBX(probability=crossover_rate, distribution_index=16) # initiate crossover instance
 
         while len(Q) < len(P):
             parents = [None, None]
@@ -556,9 +572,11 @@ class NSGA2:
 
                 child = mutation(child[0], child[1])
 
+                child[0].identifier = len(P) + len(Q)
                 child[0].evaluate()
                 Q.append(child[0])
                 if len(Q) < len(P):
+                    child[1].identifier = len(P) + len(Q)
                     child[1].evaluate()
                     Q.append(child[1])
 
@@ -623,8 +641,8 @@ class NSGA2:
 
 #initialize currentpopulation
 crossover_rate=0.9
-populationSize=64
-maxEvaluations=50
+populationSize=32
+maxEvaluations=2000
 solution = []
 currentPopulation = []
 # currentPopulation = List[Solution]
@@ -635,14 +653,14 @@ if __name__ == '__main__':
     nsga2=NSGA2(num_objectives, T*E, crossover_rate)
     for i in range(0, populationSize):
         temp=[]
-        for i in range(T):
+        for j in range(T):
             temp2=[]
-            for j in range(E):
+            for k in range(E):
                 ded = random.randint(0,10)
                 ded = ded/10
                 temp2.append(ded)
             temp = temp+temp2
-        individual = Solution(variables=temp, number_of_variables=T*E, number_of_objectives=num_objectives)
+        individual = Solution(variables=temp, number_of_variables=T*E, number_of_objectives=num_objectives, identifier=i)
         currentPopulation.append(individual)
 
     # print(currentPopulation)
