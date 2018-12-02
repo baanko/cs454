@@ -15,13 +15,15 @@ class Task(object):
     self.taskId = taskId
     self.cost = cost
     self.skills = skills
+
 class Employee(object):
   """docstring for Employee"""
-  def __init__(self, employeeId, salary, skills):
+  def __init__(self, employeeId, salary, skills,team):
     super(Employee, self).__init__()
     self.employeeId = employeeId
     self.salary = salary
     self.skills = skills
+    self.team = team
 
 # randomize the number of skills between 5 and 10 inclusively
 S = random.randint(7,10)
@@ -64,13 +66,13 @@ countEdge = 0
 
 # randomize a number of edges (a, b) in which a < b
 while countEdge != numEdge:
-  a = random.randint(1,T-1)
-  b = random.randint(a+1,T)
-
-  # dont add the edge into TPG if its already in there (avoid overlaps)
-  if (a,b) not in TPG:
-    TPG.append((a,b))
-    countEdge += 1
+    a = random.randint(1,T-1)
+    b = random.randint(a+1,T)
+    
+      # dont add the edge into TPG if its already in there (avoid overlaps)
+    if (a,b) not in TPG:
+        TPG.append((a,b))
+        countEdge += 1
 
 # randomize number of employees
 E = random.randint(10,15)
@@ -78,29 +80,35 @@ employees = []
 
 # randomize the salary and skills for each employees
 for i in range(1,E+1):
-  salary = round(np.random.normal(10000,1000))
-  skills = []
+    salary = round(np.random.normal(10000,1000))
+    skills = []
+    team = [None]*E
+      
+    numSkills = random.randint(6,7)
+      # because of the malicious usage of i, append operation inserted the wrong i for the Employee object. Changed from i to j.
+    for j in range(numSkills):
+        r = random.randint(1,S)
+        while (r in skills):
+            r = random.randint(1,S)
+        skills.append(r)
 
-  numSkills = random.randint(6,7)
-  # because of the malicious usage of i, append operation inserted the wrong i for the Employee object. Changed from i to j.
-  for j in range(numSkills):
-    r = random.randint(1,S)
-    # remove duplication
-    while (r in skills):
-      r = random.randint(1,S)
-    skills.append(r)
-
+      
+    for k in range(1, E+1):
+        if k < i:
+            team[k-1] = employees[k-1].team[i-1]
+        else:
+            team[k-1] = random.random() * 2
   # maintain the skill list as sorted
-  skills.sort()
-  employees.append(Employee(i, salary, skills))
+    skills.sort()
+    employees.append(Employee(i, salary, skills, team))
 
-if __name__ == "__main__":
-    for t in tasks:
-        print(t.taskId, t.cost, t.skills)
-    for ed in TPG:
-        print(ed)
-    for e in employees:
-        print(e.employeeId, e.salary, e.skills)
+    if __name__ == "__main__":
+        for t in tasks:
+            print(t.taskId, t.cost, t.skills)
+        for ed in TPG:
+            print(ed)
+        for e in employees:
+            print(e.employeeId, e.salary, e.skills)
 #####################instance_generator.py###############################3
 
 
@@ -293,9 +301,9 @@ def mutation(Solution1, Solution2):
 
 
 
-populationSize=50
+populationSize=64
 archiveSize=15
-maxEvaluations=1000
+maxEvaluations=5000
 feedback=20
 currentpopulation = [] 
 neighborhood = neighborhood(populationSize)
@@ -367,8 +375,7 @@ while (evaluations < maxEvaluations):
                 s = set(i.skills)-s
     
                 reqsk = reqsk+len(s)
-            
-                
+             
             
             solvable= 1
             projectduration=0
@@ -396,10 +403,11 @@ while (evaluations < maxEvaluations):
                 ratio=[]
                 dedicationj=[]
                 i=0
+                efficiency=0;
                 for v in V:
                     d=0
                     for e in employees:
-                        ded = object.variables[(v.taskId-1)*E+e.employeeId-1]
+                        ded = object.variables[(v.taskId-1)*E+e.employeeId-1]*e.team[e.employeeId-1]
                         dedication.append(ded)
                         d = d+ded
                     if d==0:
@@ -455,16 +463,19 @@ while (evaluations < maxEvaluations):
             for employee in employees:
                 for task in tasks:
                     projectcost = projectcost+object.variables[(task.taskId-1)*E+employee.employeeId-1]*tkj[task.taskId-1]*Pei[employee.employeeId-1]
-                
-            
+
+            q=projectcost*0.000001+projectduration*0.1;
+            r=100+10*undt+10*reqsk+0.1*totaloverwork;
+
             if totaloverwork>0:
-                fitness.append( 1/(projectcost*0.000001+projectduration*0.1+100+10*undt+10*reqsk+0.1*totaloverwork))
+                fitness.append( 1/(q+r))
         if fitness[0]<fitness[1]:
             print("fitness", fitness[1])
             individual.variables = offspring[0].variables
             individual.location = offspring[0].location
             archive.append(individual)   
-
+        else:
+            print("fitness", fitness[0])
 for i in range(archiveSize):
     print(archive[len(archive)-1-i].variables)
         
