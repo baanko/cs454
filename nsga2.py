@@ -32,18 +32,19 @@ from plotly.validators.surface.contours.x import project
 #####################instance_generator.py###############################3
 class Task(object):
     """docstring for Task"""
-  def __init__(self, taskId, cost, skills):
-      super(Task, self).__init__()
-    self.taskId = taskId
-    self.cost = cost
-    self.skills = skills
+    def __init__(self, taskId, cost, skills):
+        super(Task, self).__init__()
+        self.taskId = taskId
+        self.cost = cost
+        self.skills = skills
 class Employee(object):
     """docstring for Employee"""
-  def __init__(self, employeeId, salary, skills):
-      super(Employee, self).__init__()
-    self.employeeId = employeeId
-    self.salary = salary
-    self.skills = skills
+    def __init__(self, employeeId, salary, skills, team):
+        super(Employee, self).__init__()
+        self.employeeId = employeeId
+        self.salary = salary
+        self.skills = skills
+        self.team = team
 
 # set the number of objectives (fitnesses)
 num_objectives = 1
@@ -58,27 +59,27 @@ tasks = []
 
 # generate tasks
 for i in range(1, T+1):
-  # sample a cost from a normal distribution with mu=10 and std=5
-  cost = round(np.random.normal(10,5))
+    # sample a cost from a normal distribution with mu=10 and std=5
+    cost = round(np.random.normal(10,5))
 
-  skills = []
+    skills = []
 
-  # randomize number of skills required for this task
-  numSkills = random.randint(2,3)
+    # randomize number of skills required for this task
+    numSkills = random.randint(2,3)
 
 
-  # randomize skills for this task
-  for j in range(numSkills):
-    r = random.randint(1, S)
-    # remove duplication
-    while (r in skills):
-      r = random.randint(1, S)
-    skills.append(r)
+    # randomize skills for this task
+    for j in range(numSkills):
+        r = random.randint(1, S)
+        # remove duplication
+        while (r in skills):
+            r = random.randint(1, S)
+        skills.append(r)
 
-  # maintain the skill list as sorted
-  skills.sort()
-  # add task instance to task list
-  tasks.append(Task(i, cost, skills))
+    # maintain the skill list as sorted
+    skills.sort()
+    # add task instance to task list
+    tasks.append(Task(i, cost, skills))
 
 # randomize the rate of edge/task in the Task Precedence Graph
 evRate = np.random.normal(1.5,0.5)
@@ -89,13 +90,13 @@ countEdge = 0
 
 # randomize a number of edges (a, b) in which a < b
 while countEdge != numEdge:
-  a = random.randint(1,T-1)
-  b = random.randint(a+1,T)
+    a = random.randint(1,T-1)
+    b = random.randint(a+1,T)
 
-  # dont add the edge into TPG if its already in there (avoid overlaps)
-  if (a,b) not in TPG:
-    TPG.append((a,b))
-    countEdge += 1
+    # dont add the edge into TPG if its already in there (avoid overlaps)
+    if (a,b) not in TPG:
+        TPG.append((a,b))
+        countEdge += 1
 
 # randomize number of employees
 E = random.randint(10,15)
@@ -103,30 +104,36 @@ employees = []
 
 # randomize the salary and skills for each employees
 for i in range(1,E+1):
-  salary = round(np.random.normal(10000,1000))
-  skills = []
+    salary = round(np.random.normal(10000,1000))
+    skills = []
+    team = [None]*E
 
-  numSkills = random.randint(6,7)
-  # because of the malicious usage of i, append operation inserted the wrong i for the Employee object. Changed from i to j.
-  for j in range(numSkills):
-    r = random.randint(1,S)
-    # remove duplication
-    while (r in skills):
-      r = random.randint(1,S)
-    skills.append(r)
+    numSkills = random.randint(6,7)
+    # because of the malicious usage of i, append operation inserted the wrong i for the Employee object. Changed from i to j.
+    for j in range(numSkills):
+        r = random.randint(1,S)
+        # remove duplication
+        while (r in skills):
+            r = random.randint(1,S)
+        skills.append(r)
+    for k in range(1, E+1):
+        if k < 1:
+            team[k-1] = employees[k-1].team[i-1]
+        else:
+            team[k-1] = random.random() * 2
 
-  # maintain the skill list as sorted
-  skills.sort()
-  employees.append(Employee(i, salary, skills))
+    # maintain the skill list as sorted
+    skills.sort()
+    employees.append(Employee(i, salary, skills, team))
 
-'''if __name__ == "__main__":
+if __name__ == "__main__":
     for t in tasks:
         print(t.taskId, t.cost, t.skills)
     for ed in TPG:
         print(ed)
     for e in employees:
         print(e.employeeId, e.salary, e.skills)
-'''
+
 #####################instance_generator.py###############################3
 
 S = TypeVar('S')
@@ -174,141 +181,142 @@ class Solution(Generic[S]):
         Copying operator
         '''
         new_solution = Solution(
-                self.number_of_variables,
-                self.number_of_objectives)
+                self.number_of_objectives,
+                self.number_of_variables, self.variables)
         new_solution.objectives = self.objectives[:]
-        new_solution.variables = self.variables[:]
         new_solution.rank = self.rank
         new_solution.distance = self.distance
 
         return new_solution
 
     def evaluate(self):
-        # TODO: adapt fitness evaluation for NSGA-II
 
         fitness=[]
-        for test in range(2):
-            object = individual
-            if test==1:
-                object = offspring[0]
-            undt =0
-            for i in range(T):
-                k=0
-                for j in range(E):
-                    k=k+object.variables[i*E+j]
+        object = self
 
-                if k==0:
-                    undt=undt+1
+        undt =0
+        for i in range(T):
+            k=0
+            for j in range(E):
+                k=k+object.variables[i*E+j]
 
-            reqsk=0
-            for i in tasks:
-                s = set([])
-                for j in employees:
-                    if object.variables[(i.taskId-1)*E+j.employeeId-1]>0:
-                        s = s.union(set(j.skills))
+            if k==0:
+                undt=undt+1
 
-                s = set(i.skills)-s
+        reqsk=0
+        for i in tasks:
+            s = set([])
+            for j in employees:
+                if object.variables[(i.taskId-1)*E+j.employeeId-1]>0:
+                    s = s.union(set(j.skills))
 
-                reqsk = reqsk+len(s)
+            s = set(i.skills)-s
+
+            reqsk = reqsk+len(s)
 
 
 
-            solvable= 1
-            projectduration=0
-            unfinished =copy.deepcopy(tasks)
+        solvable= 1
+        projectduration=0
+        unfinished = copy.deepcopy(tasks)
 
-            TPG2 = copy.deepcopy(TPG)
-            totaloverwork=0
-            while (TPG)!=0:
-                V=[]
-                depended = []
-                for tpg in TPG:
-                    if tpg[1] not in depended:
-                        depended.append(tpg[1])
+        TPG2 = copy.deepcopy(TPG)
+        totaloverwork=0
+        while (TPG)!=0:
+            V=[]
+            depended = []
+            for tpg in TPG:
+                if tpg[1] not in depended:
+                    depended.append(tpg[1])
 
-                for f in unfinished:
-                    if f.taskId not in depended:
-                        V.append(f)
-                overwork=0
+            for f in unfinished:
+                if f.taskId not in depended:
+                    V.append(f)
+            overwork=0
 
-                if (len(V)==0):
+            if (len(V)==0):
+                solvable=0
+                break
+            dedication=[]
+
+            ratio=[]
+            dedicationj=[]
+            i=0
+            efficiency=0
+            for v in V:
+                d=0
+                for e in employees:
+                    ded = object.variables[(v.taskId-1)*E+e.employeeId-1]*e.team[e.employeeId-1]
+                    dedication.append(ded)
+                    d = d+ded
+                if d==0:
                     solvable=0
                     break
-                dedication=[]
-
-                ratio=[]
-                dedicationj=[]
-                i=0
-                for v in V:
-                    d=0
-                    for e in employees:
-                        ded = object.variables[(v.taskId-1)*E+e.employeeId-1]
-                        dedication.append(ded)
-                        d = d+ded
-                    if d==0:
-                        solvable=0
-                        break
-                    dedicationj.append(d)
+                dedicationj.append(d)
 
 
-                    ratio.append(v.cost/d)
-                    i=i+1
-                dedsum=0
-                for e in employees:
-                    for p in range(i):
-                        dedsum=dedsum+dedication[p*E+e.employeeId-1]
-                    if dedsum>1:
-                        overwork=overwork+dedsum-1
+                ratio.append(v.cost/d)
+                i=i+1
+            dedsum=0
 
-                t = min(ratio)
-                projectduration = projectduration+t
-                i=0
-                deleted=[]
-                if solvable==0:
-                    break
-                for j in V:
-                    for un in unfinished:
-                        if un.taskId == j.taskId:
-                            un.cost = un.cost - t*dedicationj[i]
-                            if un.cost<=0.001:
-                                deleted.append(j.taskId)
+            for e in employees:
+                for p in range(i):
+                    dedsum=dedsum+dedication[p*E+e.employeeId-1]
+                if dedsum>1:
+                    overwork=overwork+dedsum-1
 
-                    i=i+1
-                totaloverwork = totaloverwork +overwork*t
+            t = min(ratio)
+            projectduration = projectduration+t
+            i=0
+            deleted=[]
+            if solvable==0:
+                break
+            for j in V:
+                for un in unfinished:
+                    if un.taskId == j.taskId:
+                        un.cost = un.cost - t*dedicationj[i]
+                        if un.cost<=0.001:
+                            deleted.append(j.taskId)
 
-
-                for j in unfinished:
-                    if j.taskId in deleted:
-                        del unfinished[unfinished.index(j)]
-                for tpg in TPG:
-                    if (tpg[0] in deleted) or (tpg[1] in deleted):
-                        del TPG[TPG.index(tpg)]
+                i=i+1
+            totaloverwork = totaloverwork +overwork*t
 
 
-            projectcost=0
-            tkj=[]
-            Pei=[]
+            for j in unfinished:
+                if j.taskId in deleted:
+                    del unfinished[unfinished.index(j)]
+            for tpg in TPG:
+                if (tpg[0] in deleted) or (tpg[1] in deleted):
+                    del TPG[TPG.index(tpg)]
+
+
+        projectcost=0
+        tkj=[]
+        Pei=[]
+        for task in tasks:
+            sum=0
+            for employee in employees:
+                sum=sum+object.variables[(task.taskId-1)*E+employee.employeeId-1]
+            tkj.append(task.cost/sum)
+        for employee in employees:
+            Pei.append(employee.salary)
+        for employee in employees:
             for task in tasks:
-                sum=0
-                for employee in employees:
-                    sum=sum+object.variables[(task.taskId-1)*E+employee.employeeId-1]
-                tkj.append(task.cost/sum)
-            for employee in employees:
-                Pei.append(employee.salary)
-            for employee in employees:
-                for task in tasks:
-                    projectcost = projectcost+object.variables[(task.taskId-1)*E+employee.employeeId-1]*tkj[task.taskId-1]*Pei[employee.employeeId-1]
+                projectcost = projectcost+object.variables[(task.taskId-1)*E+employee.employeeId-1]*tkj[task.taskId-1]*Pei[employee.employeeId-1]
+
+        q=projectcost*0.000001+projectduration*0.1
+        r=100+10*undt+10*reqsk+0.1*totaloverwork
 
 
-            if totaloverwork>0:
-                fitness.append( 1/(projectcost*0.000001+projectduration*0.1+100+10*undt+10*reqsk+0.1*totaloverwork))
-        if fitness[0]<fitness[1]:
-            print("fitness", fitness[1])
-            individual.variables = offspring[0].variables
-            individual.location = offspring[0].location
-            archive.append(individual)
+        if undt > 0 or reqsk > 0 or totaloverwork>0:
+            fitness.append(1/(q+r))
+        else:
+            fitness.append(1/q)
+
+        self.variables = object.variables
+        self.objectives[0] = fitness[0]
+        # print("fitness", fitness[0])
         # evaluate solution and update objective values.
-        raise NotImplementedError("Solution class have to be implemented")
 
     '''
     def crossover(self, other):
@@ -342,21 +350,7 @@ class Solution(Generic[S]):
         '''
         return other >> self
 
-def crowded_comparison(s1, s2):
-    # compare s1 and s2 based on crowded comparison
-    # if s1 has a priority, return -1. else if s2 has a priority, return 1. else, return 0
-    if s1.rank < s2.rank:
-        return 1
-    elif s1.rank > s2.rank:
-        return -1
-    elif s1.distance > s2.distance:
-        return 1
-    elif s1.distance < s2.distance:
-        return -1
-    else:
-        return 0
-
-class Crossover(Operator[List[S], List[R]]):
+class Crossover(Operator[S, R]):
     """ Class representing crossover operator. """
 
     __metaclass__ = ABCMeta
@@ -468,7 +462,7 @@ class NSGA2:
 
         random.seed()
 
-    def run(self, P, population_size, num_generations):
+    def run(self, P: List[Solution], population_size, num_generations):
         # Run the NSGA-II instance
 
         for s in P:
@@ -493,18 +487,18 @@ class NSGA2:
                 if len(front) == 0: # Assert the non-emptyness of the front
                     break
 
-                elif len(front) + len(P) > population_size:
-                    break
-
-                self.assign_crowding_dist(front) # assign crowding distance
+                self.assign_crowding_distance(front) # assign crowding distance
                 P.extend(front)
 
-                '''
-                if len(P) >= population_size: # parent reaches the size
+                if len(P) >= population_size:
                     break
-                '''
-            self.sort_crowdingdist(front) # sort by crowding_distance
-            P.append(front[:(population_size-len(P))]) # add first (population_size - len(P)) elements from the last front
+
+            self.sort_crowdingdist(P) # sort by crowding_distance
+
+            if len(P) > population_size:
+                del P[population_size:]
+            print("Generation ", i, ": ")
+            print(P[0].objectives[0])
 
             Q = self.make_offspring(P)
 
@@ -529,15 +523,32 @@ class NSGA2:
             while parents[0] == parents[1]:
                 # Additionally on the random choice, select two and pick one by the order of crowded comparison operaor
                 for i in range(2):
+                    # print(len(P))
                     s1 = random.choice(P)
                     s2 = s1
                     while s1 is s2:
                         s2 = random.choice(P)
 
-                    if crowded_comparison(s1, s2) > 0:
-                        selected_solutions[i] = s1
+                    # print("s1: ", type(s1).__name__)
+                    # print("s2: ", type(s2).__name__)
+                    # select what solution is better
+                    selection = 0
+
+                    if s1.rank < s2.rank:
+                        selection = 1
+                    elif s1.rank > s2.rank:
+                        selection = -1
+                    elif s1.distance > s2.distance:
+                        selection = 1
+                    elif s1.distance < s2.distance:
+                        selection = -1
                     else:
-                        selected_solutions[i] = s2
+                        selection = 0
+
+                    if selection > 0:
+                        parents[i] = s1
+                    else:
+                        parents[i] = s2
 
             if random.random() < self.crossover_rate:
 
@@ -546,7 +557,7 @@ class NSGA2:
                 child = mutation(child[0], child[1])
 
                 child[0].evaluate()
-                Q.append(child)
+                Q.append(child[0])
                 if len(Q) < len(P):
                     child[1].evaluate()
                     Q.append(child[1])
@@ -571,7 +582,7 @@ class NSGA2:
                     continue
 
                 if p >> q: # p dominates q
-                    S[p].append[q]
+                    S[p].append(q)
 
                 elif p << q: # q dominates p
                     n[p] += 1
@@ -602,7 +613,7 @@ class NSGA2:
         for p in front:
             p.distance = 0 # distance initialize
 
-        for obj_index in range(self.number_of_objectives):
+        for obj_index in range(self.num_objectives):
             self.sort_objective(front, obj_index) # sort by each objective
 
             front[0].distance = front[len(front) - 1].distance = float('inf') # boundary points are always selected
@@ -612,176 +623,34 @@ class NSGA2:
 
 #initialize currentpopulation
 crossover_rate=0.9
-populationSize=50
-archiveSize=15
-maxEvaluations=1000
-feedback=20
-currentpopulation = []
+populationSize=64
+maxEvaluations=50
 solution = []
 currentPopulation = []
+# currentPopulation = List[Solution]
 evaluations = 0
-archive = []
 
-for i in range(0, populationSize):
-    temp=[]
-    for i in range(T):
-        temp2=[]
-        for j in range(E):
-            ded = random.randint(0,10)
-            ded = ded/10
-            temp2.append(ded)
-        temp = temp+temp2
-    individual = Solution(variables=temp, number_of_variables=T*E, number_of_objectives=num_objectives)
-    currentPopulation.append(individual)
+if __name__ == '__main__':
+    # Instantiate nsga2 object
+    nsga2=NSGA2(num_objectives, T*E, crossover_rate)
+    for i in range(0, populationSize):
+        temp=[]
+        for i in range(T):
+            temp2=[]
+            for j in range(E):
+                ded = random.randint(0,10)
+                ded = ded/10
+                temp2.append(ded)
+            temp = temp+temp2
+        individual = Solution(variables=temp, number_of_variables=T*E, number_of_objectives=num_objectives)
+        currentPopulation.append(individual)
 
-#iteration
-while (evaluations < maxEvaluations):
-    for popul in range(0, len(currentPopulation)):
-        individual = currentPopulation[popul]
-        parents = [Solution(variables=[], number_of_variables=T*E, number_of_objectives=num_objectives) for ii in range(2)]
-        offspring = [Solution(variables=[], number_of_variables=T*E, number_of_objectives=num_objectives) for ii in range(2)]
+    # print(currentPopulation)
 
-        neighbors[popul] = getEightNeighbors(neighborhood, currentPopulation, popul)
+    # call NSGA-II instance
+    nsga2.run(currentPopulation, populationSize, maxEvaluations)
 
-        ind = random.randint(0, len(neighbors[popul])-1)
-        parents[0] = neighbors[popul][ind]
-
-        if len(archive)>0:
-            ind = random.randint(0, len(archive)-1)
-            parents[1] = archive[ind]
-        else:
-            ind = random.randint(0, len(neighbors[popul])-1)
-            parents[1] = neighbors[popul][ind]
-
-        crossover = SBX(probability=crossover_rate, distribution_index=20)
-        offspring = crossover.execute(parents)
-
-        offspring = mutation(offspring[0], offspring[1])
-        evaluations = evaluations+1
-
-        fitness=[]
-        for test in range(2):
-            object = individual
-            if test==1:
-                object = offspring[0]
-            undt =0
-            for i in range(T):
-                k=0
-                for j in range(E):
-                    k=k+object.variables[i*E+j]
-
-                if k==0:
-                    undt=undt+1
-
-            reqsk=0
-            for i in tasks:
-                s = set([])
-                for j in employees:
-                    if object.variables[(i.taskId-1)*E+j.employeeId-1]>0:
-                        s = s.union(set(j.skills))
-
-                s = set(i.skills)-s
-
-                reqsk = reqsk+len(s)
-
-
-
-            solvable= 1
-            projectduration=0
-            unfinished =copy.deepcopy(tasks)
-
-            TPG2 = copy.deepcopy(TPG)
-            totaloverwork=0
-            while (TPG)!=0:
-                V=[]
-                depended = []
-                for tpg in TPG:
-                    if tpg[1] not in depended:
-                        depended.append(tpg[1])
-
-                for f in unfinished:
-                    if f.taskId not in depended:
-                        V.append(f)
-                overwork=0
-
-                if (len(V)==0):
-                    solvable=0
-                    break
-                dedication=[]
-
-                ratio=[]
-                dedicationj=[]
-                i=0
-                for v in V:
-                    d=0
-                    for e in employees:
-                        ded = object.variables[(v.taskId-1)*E+e.employeeId-1]
-                        dedication.append(ded)
-                        d = d+ded
-                    if d==0:
-                        solvable=0
-                        break
-                    dedicationj.append(d)
-
-
-                    ratio.append(v.cost/d)
-                    i=i+1
-                dedsum=0
-                for e in employees:
-                    for p in range(i):
-                        dedsum=dedsum+dedication[p*E+e.employeeId-1]
-                    if dedsum>1:
-                        overwork=overwork+dedsum-1
-
-                t = min(ratio)
-                projectduration = projectduration+t
-                i=0
-                deleted=[]
-                if solvable==0:
-                    break
-                for j in V:
-                    for un in unfinished:
-                        if un.taskId == j.taskId:
-                            un.cost = un.cost - t*dedicationj[i]
-                            if un.cost<=0.001:
-                                deleted.append(j.taskId)
-
-                    i=i+1
-                totaloverwork = totaloverwork +overwork*t
-
-
-                for j in unfinished:
-                    if j.taskId in deleted:
-                        del unfinished[unfinished.index(j)]
-                for tpg in TPG:
-                    if (tpg[0] in deleted) or (tpg[1] in deleted):
-                        del TPG[TPG.index(tpg)]
-
-
-            projectcost=0
-            tkj=[]
-            Pei=[]
-            for task in tasks:
-                sum=0
-                for employee in employees:
-                    sum=sum+object.variables[(task.taskId-1)*E+employee.employeeId-1]
-                tkj.append(task.cost/sum)
-            for employee in employees:
-                Pei.append(employee.salary)
-            for employee in employees:
-                for task in tasks:
-                    projectcost = projectcost+object.variables[(task.taskId-1)*E+employee.employeeId-1]*tkj[task.taskId-1]*Pei[employee.employeeId-1]
-
-
-            if totaloverwork>0:
-                fitness.append( 1/(projectcost*0.000001+projectduration*0.1+100+10*undt+10*reqsk+0.1*totaloverwork))
-        if fitness[0]<fitness[1]:
-            print("fitness", fitness[1])
-            individual.variables = offspring[0].variables
-            individual.location = offspring[0].location
-            archive.append(individual)
-
-for i in range(archiveSize):
-    print(archive[len(archive)-1-i].variables)
-
+    # record final fitness and variables
+    print("Final fitness", currentPopulation[0].objectives[0])
+    print(currentPopulation[0].variables)
 
