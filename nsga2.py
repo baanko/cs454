@@ -438,9 +438,9 @@ class SBX(Crossover[Solution, Solution]):
 def mutation(Solution1, Solution2):
     r = random.random()
     if(r < 0.5):
-        r = 1 - pow((2 * (1-r)), (1/8))
+        r = 1 - pow((2 * (1-r)), (1/7))
     else:
-        r = pow(2*r, (1/8)) - 1
+        r = pow(2*r, (1/7)) - 1
     for i in range(T*E):
         '''
         i = random.randint(0, T*E-1)/10
@@ -491,6 +491,8 @@ class NSGA2:
 
             fronts = self.fast_nondominated_sort(R) # front construction
 
+            # print(P[0].variables)
+
             del P[:] # make parent P empty
 
             front = []
@@ -503,6 +505,8 @@ class NSGA2:
                 self.assign_crowding_distance(front) # assign crowding distance
                 P.extend(front)
 
+                # print(P[0].variables)
+
                 if len(P) >= population_size:
                     break
 
@@ -514,13 +518,13 @@ class NSGA2:
                 print(p.identifier, p.objectives[0]) '''
             print("Generation", i, ": ", P[0].identifier, P[0].objectives[0])
             # print(P[0].variables)
-            # print("Generation", i, ": ", P[len(P)-1].identifier, P[len(P)-1].objectives[0])
+            print("Generation", i, ": ", P[len(P)-1].identifier, P[len(P)-1].objectives[0])
 
             Q = self.make_offspring(P)
 
     def sort_objective(self, P, obj_idx):
         # sort the popoulation (or the front) by obj_idx'th objective
-        P.sort(key=lambda x: x.objectives[obj_idx])
+        P.sort(key=lambda x: x.objectives[obj_idx], reverse=True)
 
     def sort_crowdingdist(self, P):
         # sort the population (or the front) by decreasing order of crowding distance. note that rank order should be preserved.
@@ -531,7 +535,7 @@ class NSGA2:
         # make offspring by crossover and mutation
         # selection of parents will be done by random
         Q = []
-        crossover = SBX(probability=crossover_rate, distribution_index=16) # initiate crossover instance
+        crossover = SBX(probability=crossover_rate, distribution_index=18) # initiate crossover instance
 
         while len(Q) < len(P):
             parents = [None, None]
@@ -641,7 +645,7 @@ class NSGA2:
 
 #initialize currentpopulation
 crossover_rate=0.9
-populationSize=32
+populationSize=64
 maxEvaluations=2000
 solution = []
 currentPopulation = []
