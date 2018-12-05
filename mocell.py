@@ -1,11 +1,9 @@
 import math
 import random
 import copy
-import matplotlib.pyplot as plt
 from abc import ABCMeta, abstractmethod
 from typing import TypeVar, Generic, List
 import numpy as np
-from plotly.validators.surface.contours.x import project
 
 #####################instance_generator.py###############################3
 class Task(object):
@@ -18,7 +16,7 @@ class Task(object):
 
 class Employee(object):
   """docstring for Employee"""
-  def __init__(self, employeeId, salary, skills,team):
+  def __init__(self, employeeId, salary, skills, team):
     super(Employee, self).__init__()
     self.employeeId = employeeId
     self.salary = salary
@@ -102,16 +100,45 @@ for i in range(1,E+1):
     skills.sort()
     employees.append(Employee(i, salary, skills, team))
 
-    if __name__ == "__main__":
+'''if __name__ == "__main__":
         for t in tasks:
             print(t.taskId, t.cost, t.skills)
         for ed in TPG:
             print(ed)
         for e in employees:
-            print(e.employeeId, e.salary, e.skills)
+            print(e.employeeId, e.salary, e.skills, e.team)'''
 #####################instance_generator.py###############################3
 
+T=8;
+tasks=[];
 
+
+E=10
+employees=[]
+cost=[8.0,8.0,8.0,3.0,17.0,20.0,10.0,9.0]
+skills_t = [[6, 7],[3, 5, 7],[2, 3],[3, 6, 7],[2, 3, 7],[1, 2],[2, 3],[1, 6, 7]]
+
+salary = [9465.0,9475.0,11501.0,9769.0,10749.0,10288.0,8571.0,10903.0,11037.0,9828.0]
+skills_e = [[1, 2, 3, 4, 5, 6, 7],[1, 2, 3, 4, 5, 7],[1, 2, 3, 4, 5, 6, 7],[2, 3, 4, 5, 6, 7],[1, 2, 3, 4, 5, 6, 7],
+            [1, 2, 3, 4, 5, 7],[1, 2, 3, 4, 5, 7],[1, 2, 3, 4, 5, 6, 7],[2, 3, 4, 5, 6, 7],[1, 2, 3, 4, 5, 6, 7]]
+
+team = [[1.9850026010223878, 0.18212375051252394, 0.7176406839199339, 1.5340873914952124, 0.14863581676990179, 1.3932135973019686, 0.47077045345645807, 1.4890159454850462, 0.27824517847103625, 1.5964701089741966]
+,[0.18212375051252394, 0.15133877966497167, 0.7778187939774182, 0.7981114960025331, 0.8472192924749398, 1.3930634011990006, 0.4909995217013994, 1.1151725310028653, 1.2789818710617091, 1.802499326729509]
+,[0.7176406839199339, 0.7778187939774182, 1.174265498685762, 0.8618080817973071, 0.6399809057368213, 0.9260073334361711, 0.10667661971917908, 0.6483140981769688, 0.9415352155373198, 0.2792483512974877]
+,[1.5340873914952124, 0.7981114960025331, 0.8618080817973071, 1.4340801631563556, 1.2175021462906137, 1.6176868217802627, 0.2228937417974326, 1.2943922301988497, 1.2756081176813578, 1.3051895787048884]
+,[0.14863581676990179, 0.8472192924749398, 0.6399809057368213, 1.2175021462906137, 0.31192937924613173, 0.47800990295685675, 0.4226701520364715, 1.0721857998635547, 0.27603041409724094, 1.3357600021901013]
+,[1.3932135973019686, 1.3930634011990006, 0.9260073334361711, 1.6176868217802627, 0.47800990295685675, 0.10904442155462712, 1.3622364050254925, 1.4000271252322727, 0.48386533282966626, 0.35237321377639286]
+,[0.47077045345645807, 0.4909995217013994, 0.10667661971917908, 0.2228937417974326, 0.4226701520364715, 1.3622364050254925, 0.4157121650281814, 1.4348420931759798, 1.1016468388691938, 1.9628272200314718]
+,[1.4890159454850462, 1.1151725310028653, 0.6483140981769688, 1.2943922301988497, 1.0721857998635547, 1.4000271252322727, 1.4348420931759798, 0.08120641201010037, 0.8233022739244853, 0.07368181520046768]
+,[0.27824517847103625, 1.2789818710617091, 0.9415352155373198, 1.2756081176813578, 0.27603041409724094, 0.48386533282966626, 1.1016468388691938, 0.8233022739244853, 1.6408448059389065, 0.3105475664853563]
+,[1.5964701089741966, 1.802499326729509, 0.2792483512974877, 1.3051895787048884, 1.3357600021901013, 0.35237321377639286, 1.9628272200314718, 0.07368181520046768, 0.3105475664853563, 0.7910222561839355]
+]
+TPG = [(1, 7), (3, 4), (2, 5), (4, 5), (1, 6), (3, 5), (2, 6)]
+
+for i in range(1,T+1):
+    tasks.append(Task(i, cost[i-1], skills_t[i-1]))
+for j in range(1,E+1):
+    employees.append(Employee(j, salary[j-1], skills_e[j-1], team[j-1]))
 
 def neighborhood(size):
     structure = [[0]*8 for i in range(size)]
@@ -303,8 +330,8 @@ def mutation(Solution1, Solution2):
 
 populationSize=64
 archiveSize=15
-maxEvaluations=5000
-feedback=20
+maxEvaluations=1000
+
 currentpopulation = [] 
 neighborhood = neighborhood(populationSize)
 neighbors = [Solution(variables=[], number_of_variables=T*E, location=0) for i in range(populationSize)]
@@ -330,6 +357,7 @@ for i in range(0, populationSize):
 while (evaluations < maxEvaluations):
     for popul in range(0, len(currentPopulation)):
         individual = currentPopulation[popul]
+      
         parents =  [Solution(variables=[], number_of_variables=T*E, location=0) for ii in range(2)]
         offspring = [Solution(variables=[], number_of_variables=T*E, location=0) for ii in range(2)]
         
@@ -339,8 +367,12 @@ while (evaluations < maxEvaluations):
         parents[0] = neighbors[popul][ind]
     
         if len(archive)>0:
-            ind = random.randint(0, len(archive)-1)
-            parents[1] = archive[ind]
+            if len(archive)>archiveSize:
+                ind = random.randint(0, archiveSize-1);
+                parents[1] = archive[ind+len(archive)-archiveSize]
+            else:
+                ind = random.randint(0, len(archive)-1)
+                parents[1] = archive[ind]
         else:
             ind = random.randint(0, len(neighbors[popul])-1)
             parents[1] = neighbors[popul][ind]        
@@ -376,25 +408,27 @@ while (evaluations < maxEvaluations):
     
                 reqsk = reqsk+len(s)
              
-            
+
             solvable= 1
             projectduration=0
             unfinished =copy.deepcopy(tasks)
-    
+
             TPG2 = copy.deepcopy(TPG)
             totaloverwork=0
-            while (TPG)!=0:
+
+            while (TPG2)!=0:
                 V=[]
                 depended = []
-                for tpg in TPG:
+             
+                for tpg in TPG2:
                     if tpg[1] not in depended:
                         depended.append(tpg[1])
-    
+                
                 for f in unfinished:
                     if f.taskId not in depended:
                         V.append(f)
                 overwork=0
-    
+
                 if (len(V)==0):
                     solvable=0
                     break
@@ -403,18 +437,19 @@ while (evaluations < maxEvaluations):
                 ratio=[]
                 dedicationj=[]
                 i=0
-                efficiency=0;
+                
+     
                 for v in V:
                     d=0
                     for e in employees:
-                        ded = object.variables[(v.taskId-1)*E+e.employeeId-1]*e.team[e.employeeId-1]
+                        ded = object.variables[(v.taskId-1)*E+e.employeeId-1]
                         dedication.append(ded)
                         d = d+ded
                     if d==0:
                         solvable=0
                         break
                     dedicationj.append(d)
-    
+                    
            
                     ratio.append(v.cost/d)
                     i=i+1
@@ -435,7 +470,8 @@ while (evaluations < maxEvaluations):
                     for un in unfinished:
                         if un.taskId == j.taskId:
                             un.cost = un.cost - t*dedicationj[i]
-                            if un.cost<=0.001:
+
+                            if un.cost<=0.000001:
                                 deleted.append(j.taskId)
                     
                     i=i+1
@@ -445,9 +481,9 @@ while (evaluations < maxEvaluations):
                 for j in unfinished:
                     if j.taskId in deleted:
                         del unfinished[unfinished.index(j)]
-                for tpg in TPG:
+                for tpg in TPG2:
                     if (tpg[0] in deleted) or (tpg[1] in deleted):
-                        del TPG[TPG.index(tpg)]
+                        del TPG2[TPG2.index(tpg)]
                     
                
             projectcost=0 
@@ -455,9 +491,21 @@ while (evaluations < maxEvaluations):
             Pei=[]
             for task in tasks:
                 sum=0
+                efficiency=0
+                
                 for employee in employees:
                     sum=sum+object.variables[(task.taskId-1)*E+employee.employeeId-1]
-                tkj.append(task.cost/sum)
+                ratio_sum=0
+                for em in range(0,E-1):
+                    for em2 in range(em,E):
+                        num=0;
+                        for sk in task.skills:
+                            if sk in employees[em].skills or sk in employees[em2].skills:
+                                num=num+1;
+                        efficiency = efficiency+employees[em].team[em2]*num/len(task.skills)
+                        ratio_sum=ratio_sum+num/len(task.skills)
+                
+                tkj.append(task.cost+efficiency/(sum*ratio_sum))
             for employee in employees:
                 Pei.append(employee.salary)
             for employee in employees:
@@ -470,12 +518,14 @@ while (evaluations < maxEvaluations):
             if totaloverwork>0:
                 fitness.append( 1/(q+r))
         if fitness[0]<fitness[1]:
-            print("fitness", fitness[1])
+            if (evaluations%10==0):
+                print(fitness[1])
             individual.variables = offspring[0].variables
             individual.location = offspring[0].location
             archive.append(individual)   
         else:
-            print("fitness", fitness[0])
+            if (evaluations%10==0):
+                print(fitness[0])
 for i in range(archiveSize):
     print(archive[len(archive)-1-i].variables)
         
