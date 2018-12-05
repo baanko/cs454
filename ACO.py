@@ -95,10 +95,15 @@ def check_ready(task, complete, tpg):
                 break
     return ready
 
-def update_ready(tasks, complete, TPG):
+def update_ready(tasks, complete, TPG, task_in_progress):
     ready = []
     for i in range(0, len(tasks)):
-        if check_ready(tasks[i].taskId, complete, TPG):
+        c = True
+        for j in range(0, len(task_in_progress)):
+            if task_in_progress[j][0].taskId == i + 1:
+                c = False
+                break
+        if c and check_ready(tasks[i].taskId, complete, TPG):
             ready.append(tasks[i].taskId)
             tasks[i].ready += 1
     return ready
@@ -135,9 +140,6 @@ def time_taken(task):
     efficiency = 0
     total = 0
     skill = len(task.skills)
-    if size == 0:
-        print("error: you fucked up")
-        print(task.taskId)
         
         
     if size == 1:
@@ -185,6 +187,7 @@ def select_task(ready, task_pheromone, complete, tasks):
             for m in range(0, len(tasks)):
                 if tasks[m].taskId == ind:
                     t = tasks[m]
+                    break
             for j in range(0, len(complete)):
                 complete[j].nextTask.append(t)
             return ind
@@ -195,10 +198,9 @@ def fill_employee(taskId, employee_available, employee_pheromone, task_in_progre
             task = tasks[i]
             break
     team = []
-    print("taskId : " + str(taskId))
     
     skill = list(task.skills)
-    print("skill : " + str(len(task.skills)))
+
     while not len(skill) == 0:
         c = False
         suitable_employee = []
@@ -236,12 +238,6 @@ def fill_employee(taskId, employee_available, employee_pheromone, task_in_progre
     for i in range(0, len(team)):
         employee_available.remove(team[i])
  
-    print("Available")
-    for k in range(0, len(employee_available)):
-        print("id : " + str(employee_available[k].employeeId))
-    print("Team")
-    for j in range(0, len(team)):
-        print("id : " + str(team[j].employeeId))
         
     task.team = team
     t = time_taken(task)
@@ -289,22 +285,16 @@ while (fit < operation_limit):
             #print("employee available : " + str(len(employee_available)))
             task_completed = task_complete(time, employee_available, task_in_progress, complete)
             #print("employee available after complete : " + str(len(employee_available))) 
-            print("completed : " + str(len(complete)))
             
-            ready = update_ready(tasks, complete, TPG)
-            print("ready : " + str(len(ready)))
+            ready = update_ready(tasks, complete, TPG, task_in_progress)
+
             success = True
             selected_task = [];  
             while (not len(ready) == 0):
                 task = select_task(ready, task_pheromone, task_completed, tasks)
-                print("selected task : " + str(task))
                 success = fill_employee(task, employee_available, employee_pheromone, task_in_progress, time, time_stamp)
-            print("in progress : " + str(len(task_in_progress)))
         answer = [tasks, time]
-        print("in progress : " + str(len(task_in_progress)))
-        print("Eval")
         fitness = fitness_eval(answer)
-        print("fail")
         fit += 1
         #print(answer[1])
         #print(answer[0][0].team)
