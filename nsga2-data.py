@@ -321,10 +321,10 @@ class Solution(Generic[S]):
 
         TPG2 = copy.deepcopy(TPG)
         totaloverwork=0
-        while (TPG)!=0:
+        while (TPG2)!=0:
             V=[]
             depended = []
-            for tpg in TPG:
+            for tpg in TPG2:
                 if tpg[1] not in depended:
                     depended.append(tpg[1])
 
@@ -345,7 +345,7 @@ class Solution(Generic[S]):
             for v in V:
                 d=0
                 for e in employees:
-                    ded = object.variables[(v.taskId-1)*E+e.employeeId-1]*e.team[e.employeeId-1]
+                    ded = object.variables[(v.taskId-1)*E+e.employeeId-1]
                     dedication.append(ded)
                     d = d+ded
                 if d==0:
@@ -374,7 +374,7 @@ class Solution(Generic[S]):
                 for un in unfinished:
                     if un.taskId == j.taskId:
                         un.cost = un.cost - t*dedicationj[i]
-                        if un.cost<=0.001:
+                        if un.cost<=0.000001:
                             deleted.append(j.taskId)
 
                 i=i+1
@@ -384,9 +384,9 @@ class Solution(Generic[S]):
             for j in unfinished:
                 if j.taskId in deleted:
                     del unfinished[unfinished.index(j)]
-            for tpg in TPG:
+            for tpg in TPG2:
                 if (tpg[0] in deleted) or (tpg[1] in deleted):
-                    del TPG[TPG.index(tpg)]
+                    del TPG2[TPG2.index(tpg)]
 
 
         projectcost=0
@@ -394,9 +394,20 @@ class Solution(Generic[S]):
         Pei=[]
         for task in tasks:
             sum=0
+            efficiency=0
             for employee in employees:
                 sum=sum+object.variables[(task.taskId-1)*E+employee.employeeId-1]
-            tkj.append(task.cost/sum)
+            ratio_sum = 0
+            for em in range(0,E-1):
+                for em2 in range(em,E):
+                    num = 0
+                    for sk in task.skills:
+                        if sk in employees[em].skills or sk in employees[em2].skills:
+                            num = num + 1
+                    efficiency = efficiency + employees[em].team[em2]*num/len(task.skills)
+                    ration_sum = ratio_sum + num/len(task.skills)
+
+            tkj.append(task.cost/(sum*ration_sum))
         for employee in employees:
             Pei.append(employee.salary)
         for employee in employees:
@@ -616,7 +627,8 @@ class NSGA2:
                 print(p.identifier, p.objectives[0]) '''
             print("Generation", i)
             if i%10 == 0:
-                print("fitness:", P[0].objectives[0])
+                print("Highest fitness:", P[0].objectives[0])
+                print("Lowest fitness:", P[len(P)-1].objectives[0])
             # print("Generation", i, ": ", P[0].identifier, P[0].objectives[0])
             # print(P[0].variables)
             # print("Generation", i, ": ", P[len(P)-1].identifier, P[len(P)-1].objectives[0])
