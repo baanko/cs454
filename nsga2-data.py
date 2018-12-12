@@ -625,10 +625,11 @@ class NSGA2:
                 del P[population_size:]
             ''' for p in P:
                 print(p.identifier, p.objectives[0]) '''
-            print("Generation", i)
+            #print("Generation", i)
             if i%10 == 0:
-                print("Highest fitness:", P[0].objectives[0])
-                print("Lowest fitness:", P[len(P)-1].objectives[0])
+                # print("Highest fitness:", P[0].objectives[0])
+                print(P[0].objectives[0], P[len(P)-1].objectives[0])
+                #print("Lowest fitness:", P[len(P)-1].objectives[0])
             # print("Generation", i, ": ", P[0].identifier, P[0].objectives[0])
             # print(P[0].variables)
             # print("Generation", i, ": ", P[len(P)-1].identifier, P[len(P)-1].objectives[0])
