@@ -340,7 +340,7 @@ class Solution(Generic[S]):
 
             ratio=[]
             dedicationj=[]
-            i=0
+            # i=0
             efficiency=0
             for v in V:
                 d=0
@@ -355,12 +355,12 @@ class Solution(Generic[S]):
 
 
                 ratio.append(v.cost/d)
-                i=i+1
-            dedsum=0
+                # i=i+1
 
             for e in employees:
-                for p in range(i):
-                    dedsum=dedsum+dedication[p*E+e.employeeId-1]
+                dedsum=0
+                for p in V:
+                    dedsum = dedsum+object.variables[(p.taskId-1)*E+e.employeeId-1]
                 if dedsum>1:
                     overwork=overwork+dedsum-1
 
@@ -393,10 +393,10 @@ class Solution(Generic[S]):
         tkj=[]
         Pei=[]
         for task in tasks:
-            sum=0
+            #sum=0
             efficiency=0
-            for employee in employees:
-                sum=sum+object.variables[(task.taskId-1)*E+employee.employeeId-1]
+            #for employee in employees:
+            #    sum=sum+object.variables[(task.taskId-1)*E+employee.employeeId-1]
             ratio_sum = 0
             for em in range(0,E-1):
                 for em2 in range(em,E):
@@ -405,9 +405,10 @@ class Solution(Generic[S]):
                         if sk in employees[em].skills or sk in employees[em2].skills:
                             num = num + 1
                     efficiency = efficiency + employees[em].team[em2]*num/len(task.skills)
-                    ration_sum = ratio_sum + num/len(task.skills)
+                    ratio_sum = ratio_sum + num/len(task.skills)
 
-            tkj.append(task.cost/(sum*ration_sum))
+            #tkj.append(task.cost/(sum*ration_sum))
+            tkj.append(task.cost*efficiency/(2*ratio_sum))
         for employee in employees:
             Pei.append(employee.salary)
         for employee in employees:
@@ -418,7 +419,7 @@ class Solution(Generic[S]):
         r=100+10*undt+10*reqsk+0.1*totaloverwork
 
 
-        if undt > 0 or reqsk > 0 or totaloverwork>0:
+        if undt > 0.001 or reqsk > 0.001 or totaloverwork>1:
             fitness.append(1/(q+r))
         else:
             fitness.append(1/q)
@@ -560,10 +561,10 @@ def mutation(Solution1, Solution2):
         Solution2.variables[i] = j
         '''
         if random.random() < r:
-            j = random.randint(0,10)/10
+            j = random.randint(0,5)/10.0
             Solution1.variables[i] = j
         if random.random() < r:
-            j = random.randint(0,10)/10
+            j = random.randint(0,5)/10.0
             Solution2.variables[i] = j
     return [Solution1, Solution2]
 
@@ -774,8 +775,8 @@ if __name__ == '__main__':
         for j in range(T):
             temp2=[]
             for k in range(E):
-                ded = random.randint(0,10)
-                ded = ded/10
+                ded = random.randint(0,5)
+                ded = ded/10.0
                 temp2.append(ded)
             temp = temp+temp2
         individual = Solution(variables=temp, number_of_variables=T*E, number_of_objectives=num_objectives, identifier=i)
